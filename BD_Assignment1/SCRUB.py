@@ -106,4 +106,3 @@ if __name__ == "__main__":
     dataAfter = Seperate_Data(dataBefore)
     Write_File(comm,dataAfter)
 
-
