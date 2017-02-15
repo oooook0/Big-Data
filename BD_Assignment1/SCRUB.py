@@ -1,108 +1,187 @@
-import sys
 import time
-import pandas as pd
+import psutil
+import argparse
+import logging
 from mpi4py import MPI
-from functools import wraps
 
-# calculate the running time
-def fn_timer(function):
-    @wraps(function)
-    def function_timer(*args, **kwargs):
-        t0 = time.time()
-        result = function(*args, **kwargs)
-        t1 = time.time()
-        if comm.Get_rank() == 0:
-            print ("Total time running %s: %s seconds" %(function.func_name, str(t1 - t0)))
-        return result
-    return function_timer
 
-# open the file
-@ fn_timer
-def Read_File(comm,file_name):
-    """ Open the file
+def seperate_data(buffer_per_process):
 
-    """
-    try:
-        rank = comm.Get_rank()
-        in_file = MPI.File.Open(comm, file_name, MPI.MODE_RDONLY, MPI.INFO_NULL)
-        file_size = in_file.Get_size()
+    signal, noise = [], []
+    dateSet = {}
+    # garbage = []
 
-        num_process = comm.Get_size()
-        size_per_process = int(float(file_size) / num_process)
-        buffer_per_process = bytearray(size_per_process)
-        offset_per_process = rank * size_per_process
+    buff_decode = buffer_per_process.decode().split('\n')[:-1]
 
-        in_file.Read_ordered(buffer_per_process)
-        in_file.Close()
-        tmp1 = buffer_per_process.decode().split('\r\n')[0:-1]
-        tmp2 = [tmp1[i].split(',')[0:] for i in xrange(0, len(tmp1))]
-        lines = pd.DataFrame(tmp2[i][0].split(':') + tmp2[i][1:] for i in xrange(0, len(tmp2)))
-        lines.columns = ['Date', 'Hour', 'Minute', 'Second', 'Price', 'Volume']
-        return lines
+    for i, line_to_select in enumerate(buff_decode):
 
-    except:
-        info = sys.exc_info()
-        print info[0], ":", info[1]
+        tmp = line_to_select.split(',')
 
-@fn_timer
-def Seperate_Data(lines):
-    # add duplicate
-    duplicateIndex = lines.duplicated(['Date', 'Hour', 'Minute', 'Second', 'Price'], keep='last')
-    duplicateIndex = [i for i in xrange(len(duplicateIndex)) if duplicateIndex[i] == True]
+        # deal with broken line
+        if len(tmp) != 3:
+            # garbage.append(line_to_select)
+            pass
+        # remove the invalid data
+        elif 'o' in tmp[0] or 'O' in tmp[0]:
+            noise.append(tmp)
+        # remove the data whose price or volum less or equal than 0
+        elif tmp[1][0] == '-' or tmp[2][0] == '-' or tmp[1][0] == '0' or tmp[2][0] == '0':
+            noise.append( tmp)
+        else:
+            signal.append(tmp)
+            if tmp[0][:8] not in dateSet:
+                dateSet[tmp[0][:8]] = 1
+            else:
+                dateSet[tmp[0][:8]] += 1
 
-    # add volume or price less than 0
-    lessZeroIndex = list(set(list(lines[lines['Volume'] < '0'].index) + list(lines[lines['Price'] < '0'].index)))
+    # this is mainly for finding abnormally large price compared to the prevous time slot
+    signal.sort()
 
     # remove those date whoes percentage is less than 1%
-    dateSet = list(set(lines['Date']))
-    dateRemove = list()
-    for date in dateSet:
-        if len(lines[lines['Date'] == date]) / float(len(lines)) < 0.01:
-            dateRemove.append(date)
-
+    dateRemove = []
+    for k, v in dateSet.iteritems():
+        if v / float(len(buff_decode))  < 0.01:
+            dateRemove.append(k)
     # confirm that the date is not the latest date
     for date in dateRemove:
         if date == max(dateSet):
             dateRemove.remove(date)
 
-    dateRemoveIndex = []
-    for date in dateRemove:
-        dateRemoveIndex = dateRemoveIndex + list(lines[lines['Date'] == date].index)
+    for i, line_to_select in enumerate(signal):
+        if line_to_select[0][:8] in dateRemove:
+            noise.append(line_to_select)
+            del signal[i]
+        elif i > 0:
+            # remove the duplicated data
+            if line_to_select[0] == signal[i-1][0]:
+                noise.append(line_to_select)
+                del signal[i]
+            # remove abnormal large price
+            elif abs(len(tmp[1]) - len(signal[-1][1])) > 1:
+                noise.append(line_to_select)
+                del signal[i]
 
-    # index need to mark
-    index_to_remove = duplicateIndex + lessZeroIndex + dateRemoveIndex
+    # noise.sort()
 
-    # add 'isNoise' column
-    isNoise = ['F'] * len(lines)
-    for i in index_to_remove:
-        isNoise[i] = 'T'
-    isNoise = pd.DataFrame(isNoise)
-    isNoise.columns = ['isNoise']
+    signal_data = '\n'.join([','.join(i) for i in signal]) + '\n'
+    noise_data = '\n'.join([','.join(i) for i in noise]) + '\n'
 
-    target = pd.concat([lines, isNoise], axis=1)
-    return target
-
-@fn_timer
-def Write_File(comm,target):
-    signal_data = target[target['isNoise'] == 'F']
-    noise_data = target[target['isNoise'] == 'T']
-
-    out_file0 = MPI.File.Open(comm, "noise.txt", MPI.MODE_WRONLY | MPI.MODE_CREATE)
-    out_file1 = MPI.File.Open(comm, "signal.txt", MPI.MODE_WRONLY | MPI.MODE_CREATE)
-
-    noise_buf = noise_data.to_string().encode(encoding='UTF-8', errors='strict')
-    signal_buf = signal_data.to_string().encode(encoding='UTF-8', errors='strict')
-
-    out_file0.Write_ordered(noise_buf)
-    out_file1.Write_ordered(signal_buf)
-    out_file0.Close()
-    out_file1.Close()
+    return signal_data,noise_data
 
 
 if __name__ == "__main__":
 
-    comm = MPI.COMM_WORLD
-    dataBefore = Read_File(comm, 'data-small.txt')
-    dataAfter = Seperate_Data(dataBefore)
-    Write_File(comm,dataAfter)
+    # time tracker
+    start = time.time()
+    i_time, process_time, o_time = 0, 0, 0
 
+    # passing the parameters
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-file", help="Enter the file name", required=True)
+    args = parser.parse_args()
+
+    # initial MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    # adding log file
+    if rank == 0:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+                            datefmt='%a, %d %b %Y %H:%M:%S',
+                            filename='scrub.log',
+                            filemode='w')
+        logging.info("initializing MPI...")
+
+
+    in_file = MPI.File.Open(comm, args.file, MPI.MODE_RDONLY, MPI.INFO_NULL)
+    # in_file = MPI.File.Open(comm, "data-big.txt", MPI.MODE_RDONLY, MPI.INFO_NULL)
+
+    if rank == 0:
+        logging.info("open the input file %s" % rank)
+
+    file_size = in_file.Get_size()
+    num_process = comm.Get_size()
+
+    read_size = file_size if file_size < (psutil.virtual_memory().free) / 70 else (psutil.virtual_memory().free) / 70
+    size_per_process = int(float(read_size) / num_process)
+
+    iteration = float(file_size) / read_size
+
+    buffer_per_process = bytearray(size_per_process)
+
+    out_file0 = MPI.File.Open(comm, "noise.txt", MPI.MODE_WRONLY | MPI.MODE_CREATE)
+    out_file1 = MPI.File.Open(comm, "signal.txt", MPI.MODE_WRONLY | MPI.MODE_CREATE)
+
+    if rank == 0:
+        logging.info("file size = %s, read size = %s, size per process = %s" % (file_size, read_size, size_per_process))
+        logging.info("iteration = %s" % iteration)
+
+    counter = 0
+
+    while counter < iteration:
+
+        if rank == 0:
+            logging.info("-- %s / %i --" % (counter, iteration))
+
+        # read the data
+        i_time_start = time.time()
+
+        if counter * read_size + rank * size_per_process + size_per_process <= file_size:
+            in_file.Read_at(counter * read_size + rank * size_per_process, buffer_per_process)
+        elif counter * read_size + rank * size_per_process > file_size:
+            buffer_per_process = bytearray(0)
+            in_file.Read_at(counter * read_size + rank * size_per_process, buffer_per_process)
+        else:
+            buffer_per_process = bytearray(file_size - counter * read_size - rank * size_per_process)
+            in_file.Read_at(counter * read_size + rank * size_per_process, buffer_per_process)
+
+        i_time_end = time.time()
+        i_time += (i_time_end -i_time_start)
+
+        counter += 1
+
+        if rank == 0:
+            logging.info("counter %s in iteration %s done on reading" % (counter, iteration))
+            logging.info("starting to process the data")
+
+        '''process the data
+           1. deal with broken lines
+           2. seperate the noise and signal
+        '''
+        process_time_start = time.time()
+
+        # seperate the data
+        signal_data, noise_data = seperate_data(buffer_per_process)
+
+        process_time_end = time.time()
+        process_time += (process_time_end - process_time_start)
+
+        # output the data
+        o_time_start = time.time()
+
+        if rank == 0:
+            logging.info("processing the data is done")
+            logging.info("starting to output...")
+
+        out_file0.Write_ordered(noise_data.encode(encoding='UTF-8'))
+        out_file1.Write_ordered(signal_data.encode(encoding='UTF-8'))
+
+        o_time_end = time.time()
+        o_time += (o_time_end - o_time_start)
+
+
+    in_file.Close()
+    out_file0.Close()
+    out_file1.Close()
+    comm.Barrier()
+    end = time.time()
+
+    if rank == 0:
+        print "Total time of input: {} seconds".format(str(i_time))
+        print "Total time of processing data: {} seconds".format(str(process_time))
+        print "Total time of output: {} seconds".format(str(o_time))
+        print "Total time of the whole program: {} seconds".format(str(end - start))
+        logging.info("total input time %s seconds; total output time %s seconds; total processing time %s seconds" % (i_time, o_time,process_time))
+        logging.info("total run timem %s seconds" % str(end - start))
+        logging.info("program ended")
