@@ -1,24 +1,13 @@
-# Assignment A (PART I)
+# Assignment A 
 
-### GOAL
-For homework 2, we expect you to solve the problems using object oriented programming and also multiple modules to organize your code better.
+## SCRUB.py 
+### GOAL : seperate the signal from the noise
+![image](https://github.com/alfredzj/BigData/blob/master/BD_Assignment1/material/scrub.png)
 
-You are given a CSV file with a set of mortgages that you are going to "package" into a passthrough security. The mortgage file contains one mortgage per line with principal, rate in percentage and term in years. Every month you will receive a cashflow that is equal to the sum of all the mortgages' cashflows in the "package".
-
-You are also given a yield curve CSV file with 2 values: term in months and rate in percentage.
-
-Write a script that does the following:
-
-* Calculate the value of your "packaged" security
-* Using finite differences, calculate Modified Duration, Convexity and DV01 of your 
-
-
-### Files ###
-
-* fall2016_9815_hw02.py: This is the main module of hw2
-* yc.py: provides a ```YieldCurve``` class to represent the yield curve
-* mortgage.py: provides a ```Mortgage``` class to store mortgage information
-* portfolio.py: provides a ```Portfolio``` class to store all mortgages
+### Instruction
+* The SCRUB.py is composed of three parts: reading, processing and outputing.
+  * Reading
+  Since I am dealing with files whose sizes range from hundreds of KB up to many GB, I use Read_at to load the file.Before reading the data, 
 
 ### Running
 
