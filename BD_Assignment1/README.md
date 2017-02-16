@@ -23,14 +23,15 @@
     
          There are some rules in order to seperate the signal and noise. Note that all the filtering does not involve type conversion, which can save a lot of time.
          
-        * 2014O804:10:00:13.826301 ----> Invalid date. Non-numeric character.
-        
+        ```        
         * -1293.42,-207056-----> Invalid price/volume. Can't have negative.
+        
+        * 2014O804:10:00:13.826301 ----> Invalid date. Non-numeric character.
         
         * remove duplicated information
         
         * remove abnomal large or small price.
-          
+        ```
    * Output
    
          I use ```Write_ordered``` to output my signal and noise. The reason is that it can control the write order which is extremely important in multithreading compiling.
