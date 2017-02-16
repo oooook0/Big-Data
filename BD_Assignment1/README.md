@@ -19,6 +19,11 @@
          in_file.Read_at(counter * read_size + rank * size_per_process, buffer_per_process)
      ```
      
+         [IMPORTANT] The following is a code snippet in reading process. The denominator should be adjusted accoding to the memory free. Say, I will use 70 on my 16MB memory PC.
+     ```
+     read_size = file_size if file_size < (psutil.virtual_memory().free) / 70 else (psutil.virtual_memory().free) / 70
+     ```
+
    * Processing      
     
          There are some rules in order to seperate the signal and noise. Note that all the filtering does not involve type conversion, which can save a lot of time.
