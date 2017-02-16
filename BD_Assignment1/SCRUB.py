@@ -8,60 +8,36 @@ from mpi4py import MPI
 def seperate_data(buffer_per_process):
 
     signal, noise = [], []
-    dateSet = {}
-    # garbage = []
 
     buff_decode = buffer_per_process.decode().split('\n')[:-1]
 
-    for i, line_to_select in enumerate(buff_decode):
+    lines = [buff_decode[i].split(',') for i in xrange(0, len(buff_decode))]
 
-        tmp = line_to_select.split(',')
+    lines.sort()
+
+    for i, line_to_select in enumerate(lines):
 
         # deal with broken line
-        if len(tmp) != 3:
-            # garbage.append(line_to_select)
+        if len(line_to_select) != 3:
             pass
         # remove the invalid data
-        elif 'o' in tmp[0] or 'O' in tmp[0]:
-            noise.append(tmp)
-        # remove the data whose price or volum less or equal than 0
-        elif tmp[1][0] == '-' or tmp[2][0] == '-' or tmp[1][0] == '0' or tmp[2][0] == '0':
-            noise.append( tmp)
-        else:
-            signal.append(tmp)
-            if tmp[0][:8] not in dateSet:
-                dateSet[tmp[0][:8]] = 1
-            else:
-                dateSet[tmp[0][:8]] += 1
-
-    # this is mainly for finding abnormally large price compared to the prevous time slot
-    signal.sort()
-
-    # remove those date whoes percentage is less than 1%
-    dateRemove = []
-    for k, v in dateSet.iteritems():
-        if v / float(len(buff_decode))  < 0.01:
-            dateRemove.append(k)
-    # confirm that the date is not the latest date
-    for date in dateRemove:
-        if date == max(dateSet):
-            dateRemove.remove(date)
-
-    for i, line_to_select in enumerate(signal):
-        if line_to_select[0][:8] in dateRemove:
+        elif 'o' in line_to_select[0] or 'O' in line_to_select[0]:
             noise.append(line_to_select)
-            del signal[i]
-        elif i > 0:
+        # remove the data whose price or volum less or equal than 0
+        elif line_to_select[1][0] == '-' or line_to_select[2][0] == '-' or line_to_select[1][0] == '0' or line_to_select[2][0] == '0':
+            noise.append(line_to_select)
+        elif i > 0 and len(lines[i-1]) == 3:
             # remove the duplicated data
-            if line_to_select[0] == signal[i-1][0]:
+            if line_to_select[0] == lines[i-1][0]:
                 noise.append(line_to_select)
-                del signal[i]
-            # remove abnormal large price
-            elif abs(len(tmp[1]) - len(signal[-1][1])) > 1:
+            # remove abnormal large or small price
+            elif abs(len(line_to_select[1]) - len(lines[i-1][1])) > 1:
                 noise.append(line_to_select)
-                del signal[i]
+            else:
+                signal.append(line_to_select)
+        else:
+            signal.append(line_to_select)
 
-    # noise.sort()
 
     signal_data = '\n'.join([','.join(i) for i in signal]) + '\n'
     noise_data = '\n'.join([','.join(i) for i in noise]) + '\n'
@@ -73,7 +49,7 @@ if __name__ == "__main__":
 
     # time tracker
     start = time.time()
-    i_time, process_time, o_time = 0, 0, 0
+    i_time, process_time, on_time, os_time = 0, 0, 0, 0
 
     # passing the parameters
     parser = argparse.ArgumentParser()
@@ -95,10 +71,9 @@ if __name__ == "__main__":
 
 
     in_file = MPI.File.Open(comm, args.file, MPI.MODE_RDONLY, MPI.INFO_NULL)
-    # in_file = MPI.File.Open(comm, "data-big.txt", MPI.MODE_RDONLY, MPI.INFO_NULL)
 
     if rank == 0:
-        logging.info("open the input file %s" % rank)
+        logging.info("open the input file %s" % args.file)
 
     file_size = in_file.Get_size()
     num_process = comm.Get_size()
@@ -158,17 +133,22 @@ if __name__ == "__main__":
         process_time += (process_time_end - process_time_start)
 
         # output the data
-        o_time_start = time.time()
 
         if rank == 0:
             logging.info("processing the data is done")
             logging.info("starting to output...")
 
+        # output noise
+        on_time_start = time.time()
         out_file0.Write_ordered(noise_data.encode(encoding='UTF-8'))
-        out_file1.Write_ordered(signal_data.encode(encoding='UTF-8'))
+        on_time_end = time.time()
+        on_time += (on_time_end - on_time_start)
 
-        o_time_end = time.time()
-        o_time += (o_time_end - o_time_start)
+        # output signal
+        os_time_start = time.time()
+        out_file1.Write_ordered(signal_data.encode(encoding='UTF-8'))
+        os_time_end = time.time()
+        os_time += (os_time_end - os_time_start)
 
 
     in_file.Close()
@@ -180,8 +160,10 @@ if __name__ == "__main__":
     if rank == 0:
         print "Total time of input: {} seconds".format(str(i_time))
         print "Total time of processing data: {} seconds".format(str(process_time))
-        print "Total time of output: {} seconds".format(str(o_time))
+        print "Total time of output signal: {} seconds".format(str(os_time))
+        print "Total time of output noise: {} seconds".format(str(on_time))
         print "Total time of the whole program: {} seconds".format(str(end - start))
-        logging.info("total input time %s seconds; total output time %s seconds; total processing time %s seconds" % (i_time, o_time,process_time))
-        logging.info("total run timem %s seconds" % str(end - start))
+        logging.info("total input time %s seconds; total processing time %s seconds" % (i_time, process_time))
+        logging.info("total output(signal) time %s; total output(noise) time %s" %(os_time, on_time))
+        logging.info("total run time %s seconds" % str(end - start))
         logging.info("program ended")

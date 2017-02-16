@@ -2,7 +2,7 @@ import time
 import psutil
 import argparse
 import logging
-import numpy as np
+# import matplotlib.pyplot as plt
 from scipy import stats
 from mpi4py import MPI
 
@@ -10,7 +10,6 @@ def get_return_data(buffer_per_process):
 
     sample_data = []
     dateSet = set()
-    # garbage = []
 
     buff_decode = buffer_per_process.decode().split('\n')[:-1]
     buff_decode.sort()
@@ -19,11 +18,10 @@ def get_return_data(buffer_per_process):
         tmp = line_to_select.split(',')
         # deal with broken line
         if len(tmp) != 3:
-            # garbage.append(line_to_select)
             pass
         else:
             # get the first element from the each new second
-            if tmp[0][:17] not in dateSet and float(tmp[1]) != 0.0:
+            if tmp[0][:17] not in dateSet and float(tmp[1]) > 1.:
                 dateSet.add(tmp[0][:17])
                 sample_data.append(float(tmp[1]))
             else:
@@ -61,10 +59,9 @@ if __name__ == "__main__":
 
 
     in_file = MPI.File.Open(comm, args.file, MPI.MODE_RDONLY, MPI.INFO_NULL)
-    # in_file = MPI.File.Open(comm, "signal.txt", MPI.MODE_RDONLY, MPI.INFO_NULL)
 
     if rank == 0:
-        logging.info("open the input file %s" % rank)
+        logging.info("open the input file %s" % args.file)
 
     file_size = in_file.Get_size()
     num_process = comm.Get_size()
@@ -120,16 +117,9 @@ if __name__ == "__main__":
         sample_to_test = []
         for i in combine_returns_data:
             sample_to_test += i
-        # calculate some characteristic of the sample
-        narray = np.array(sample_to_test)
-        N = len(narray)
-        narray2 = narray * narray
-        mean = narray.sum() / N
-        var = narray2.sum() / N - mean ** 2
-        print "return sample size: %s" % N
-        print "mean: %s, variance: %s" % (mean, var)
-        logging.info("return sample size: %s" % N)
-        logging.info("mean: %s, variance: %s" % (mean, var))
+        # get some characteristic of the sample data
+        logging.info(stats.describe(sample_to_test))
+
         # k = z-score returned by skewtest and k is the z-score returned by kurtosistest. p = p-value
         k, p = stats.mstats.normaltest(sample_to_test)
         # we use p value to test if the variable is normal or not
@@ -140,6 +130,12 @@ if __name__ == "__main__":
           print 'the return data is normal'
           logging.info('normaltest: k = %s, p_value = %s > 0.05 ---> the return data is normal'%(k, p))
 
+
+        # plt.subplot(1, 1, 1)
+        # plt.hist(sample_to_test)
+        # plt.xlabel("the return")
+        # plt.savefig("hist_of_return.png")
+        # logging.info("output the histgram of the return")
 
         process_time_end = time.time()
         process_time += (process_time_end - process_time_start)
