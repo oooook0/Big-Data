@@ -1,17 +1,33 @@
 # Assignment A 
 
-## SCRUB.py 
-### GOAL : seperate the signal from the noise
-![image](https://github.com/alfredzj/BigData/blob/master/BD_Assignment1/material/scrub.png)
+## SCRUB.py (seperate the signal and noise from the data.txt) 
 
 ### Instruction
 * The SCRUB.py is composed of three parts: reading, processing and outputing.
-  * Reading
-  Since I am dealing with files whose sizes range from hundreds of KB up to many GB, I use Read_at to load the file.Before reading the data, 
-
-### Running
-
-Run the main module using following command:
-```
-> python fall2016_9815_hw02.py -y yc.csv -d mortgages.csv
-```
+  * Reading         
+  I use ```Read_at``` to load the file to deal with the situation where the file size is like many GB. Before reading the data, I divide the file into several chunks and calculate size_per_process according to the memory free and the number of processes. And the whole process is done by ```while```. Note that size_per_process is not only controlled by the variables mentioned above. It is also adjusted according to the file size itself in order not to output much useless information.    
+     ```
+     if counter * read_size + rank * size_per_process + size_per_process <= file_size:
+         in_file.Read_at(counter * read_size + rank * size_per_process, buffer_per_process)
+     elif counter * read_size + rank * size_per_process > file_size:
+         buffer_per_process = bytearray(0)
+         in_file.Read_at(counter * read_size + rank * size_per_process, buffer_per_process)
+     else:
+         buffer_per_process = bytearray(file_size - counter * read_size - rank * size_per_process)
+         in_file.Read_at(counter * read_size + rank * size_per_process, buffer_per_process)
+     ```
+   * Processing      
+    There are some rules in order to seperate the signal and noise:
+    - 2014O804:10:00:13.826301 ----> Invalid date. Non-numeric character.
+    - -1293.42,-207056-----> Invalid price/volume. Can't have negative.
+    - remove duplicated information
+    - remove abnomal large or small price.
+    Note that all the above filtering does not involve type conversion, which can save a lot of time.
+    
+   * Output
+   I use ```Write_ordered``` to output my signal and noise. The reason is that it can control the write order which is extremely important in multithreading compiling.
+  * log file can be found, which will provide you the information of status of compliling and time consumption.
+  * Running in the terminal:
+  ```
+  mpirun -np 4 python SCRUB.py -file data-big.txt
+  ```
