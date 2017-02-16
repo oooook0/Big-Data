@@ -22,8 +22,7 @@
    * Processing      
     
          There are some rules in order to seperate the signal and noise. Note that all the filtering does not involve type conversion, which can save a lot of time.
-         
-        ```        
+                
         * -1293.42,-207056-----> Invalid price/volume. Can't have negative.
         
         * 2014O804:10:00:13.826301 ----> Invalid date. Non-numeric character.
@@ -31,7 +30,7 @@
         * remove duplicated information
         
         * remove abnomal large or small price.
-        ```
+             
    * Output
    
          I use ```Write_ordered``` to output my signal and noise. The reason is that it can control the write order which is extremely important in multithreading compiling.
@@ -39,6 +38,7 @@
 * log file can be found, which will provide you the information of status of compliling and time consumption.
   
 * Running in the terminal:
+
       ```
       mpirun -np 4 python SCRUB.py -file data-big.txt
       ```
@@ -65,9 +65,7 @@
      
    * Processing      
     
-         I select the earlist time in one minute as the time slot after the whole data is locally sorted. The returns can be calculated and gathered to the root. Use ```describe()``` and ```normaltest()``` to get the primary characteristics of the data and the normality of the time series. The results are saved in the log file.  
-         
-Note that there is one commented part in NORMAL.py. This part aims at drawing a histgram of returns. In order to adapt to the HPCC environment, it is commented.
+         I select the earlist time in one minute as the time slot after the whole data is locally sorted. The returns can be calculated and gathered to the root. Use ```describe()``` and ```normaltest()``` to get the primary characteristics of the data and the normality of the time series. The results are saved in the log file. Note that there is one commented part in NORMAL.py. This part aims at drawing a histgram of returns. In order to adapt to the HPCC environment, it is commented.
 
 * Running in the terminal:
 
