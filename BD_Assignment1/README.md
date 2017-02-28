@@ -1,5 +1,17 @@
 # Assignment A 
 
+The problem itself has been uploaded.
+
+#### MPI tutorial
+https://mpi4py.scipy.org/docs/usrman/tutorial.html
+   
+#### MPCC system  
+http://wiki.csi.cuny.edu/cunyhpc/index.php/Overview_of_the_CUNY_HPC_Center_resources
+
+#### PBS documentation
+http://resources.altair.com/pbs/documentation/support/PBSProUserGuide12.1.pdf
+
+
 ## SCRUB.py (seperate the signal and noise from the data.txt) 
 
 ### Instruction
