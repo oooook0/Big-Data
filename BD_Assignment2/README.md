@@ -14,4 +14,4 @@ in a 24 hour period) on any given day,
 
 
 
-[reference](https://zhuanlan.zhihu.com/p/25332557)
+[bitcoin](https://zhuanlan.zhihu.com/p/25332557)
