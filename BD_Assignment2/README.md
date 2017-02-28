@@ -11,3 +11,7 @@ The assignment is divided into two parts:
   - What's the market capitalization of bitcoin as measured in US $ ?
 - Write a simple program in Python using the blockchain.info "Blockchain Data API" that will sum up the total quantity of bitcoin transactions (how many bitcoins moved between addresses
 in a 24 hour period) on any given day,
+
+
+
+[reference](https://zhuanlan.zhihu.com/p/25332557)
