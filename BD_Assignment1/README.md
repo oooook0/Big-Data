@@ -1,6 +1,6 @@
 # Assignment A 
 
-The problem itself has been uploaded.
+The problem itself has been uploaded in material folder.
 
 #### MPI tutorial
 https://mpi4py.scipy.org/docs/usrman/tutorial.html
