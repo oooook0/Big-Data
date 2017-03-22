@@ -10,7 +10,7 @@ http://wiki.csi.cuny.edu/cunyhpc/index.php/Overview_of_the_CUNY_HPC_Center_resou
 
 #### PBS documentation
 http://resources.altair.com/pbs/documentation/support/PBSProUserGuide12.1.pdf
-
+http://wiki.csi.cuny.edu/cunyhpc/index.php/Running_jobs#Submitting_jobs_for_execution
 
 ## SCRUB.py (seperate the signal and noise from the data.txt) 
 
