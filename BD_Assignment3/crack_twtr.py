@@ -108,7 +108,7 @@ class crack_twtr():
             predicted_price = (predicted_returns + 1) * self.price_info[s][0]
             self.predict_.update({s: {"predict_return": predicted_returns, "predict_price": predicted_price}})
 
-        print "According to twtr info, prediction is as follows:\n %s" % task.predict_
+        print "According to twtr info, prediction is as follows:\n %s" % self.predict_
 
     def show_plot(self, n):
         index = range(1, len(self.plot_y) + 1)
@@ -163,6 +163,7 @@ if __name__ == "__main__":
     time3_end = time.time() # end
     logging.info("plot established...")
 
+    logging.info("prediction result:\n %s" % task.predict_)
     logging.info("establishing class takes: %s seconds" % str(time1_end - time1_begin))
     logging.info("analysis takes: %s seconds" % str(time2_end - time2_begin))
     logging.info("plotting takes: %s seconds" % str(time3_end - time3_begin))
