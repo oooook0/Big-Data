@@ -123,6 +123,7 @@ class crack_twtr():
 
 if __name__ == "__main__":
 
+
     # passing the parameters
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", help="Enter the price_csv", required=True)
