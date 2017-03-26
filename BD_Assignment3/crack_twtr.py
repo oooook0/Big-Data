@@ -41,6 +41,7 @@ class crack_twtr():
         return twtr_path
 
     def twtr_analyze(self):
+
         self.path_list = self.get_twtr_path(self.price_info)
 
         def extract_features(twtr_line):
@@ -70,6 +71,7 @@ class crack_twtr():
             return info_set
 
         def aggragete_result(r1, r2):
+
             for s in stock_set:
                 r1[s]["followers_count"] = int(r1[s]["followers_count"]) + int(r2[s]["followers_count"])
                 r1[s]["mentioned_count"] = int(r1[s]["mentioned_count"]) + int(r2[s]["mentioned_count"])
@@ -122,7 +124,6 @@ class crack_twtr():
 
 
 if __name__ == "__main__":
-
 
     # passing the parameters
     parser = argparse.ArgumentParser()
