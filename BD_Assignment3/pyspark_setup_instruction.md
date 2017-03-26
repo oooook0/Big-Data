@@ -27,3 +27,8 @@
         sys.path.insert(0, 'path_to_spark/python')
     ```
    - or you can paste the above lines to your .py or .ipny file
+
+- Change the warning level of pyspark
+  - ```cd path_to_spark```
+  - ```vim conf/log4j.properties```
+  - replace the line ```log4j.rootCategory=INFO, console``` by ```log4j.rootCategory=ERROR, console```
