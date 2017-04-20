@@ -26,3 +26,4 @@ python daily-btc.py -d 20170220
   - the number of transcations on that day
   - the total value of transcations on that day you enter
   - a log file
+
