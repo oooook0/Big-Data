@@ -93,3 +93,4 @@ http://wiki.csi.cuny.edu/cunyhpc/index.php/Running_jobs#Submitting_jobs_for_exec
 ## Run on PENZIAS
 
 use ```git``` and ```wget``` to get the code and the data on the scratch. submit the pbs file.
+
