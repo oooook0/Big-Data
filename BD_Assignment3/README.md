@@ -34,3 +34,4 @@
   | statsmodels  | ```conda install -c statsmodels statsmodels=0.6.0_dev``` |
   | matplotlib  | ```conda install -c conda-forge matplotlib=2.0.0``` |
   | py4j  | ```conda install -c blaze py4j=0.9```|
+
