@@ -105,4 +105,3 @@ if __name__ == "__main__":
     dataBefore = Read_File(comm, 'data-small.txt')
     dataAfter = Seperate_Data(dataBefore)
     Write_File(comm,dataAfter)
-
